@@ -37,6 +37,7 @@ Se você só quer a resposta, é esta:
 | | |
 |---|---|
 | **Adaptador** | ELM327 v1.5 USB (chip FTDI ou CH340). ~R$ 50–120. |
+| **Se tiver chave HS/MS CAN** | Deixe em **`HS CAN`** — senão não conecta |
 | **Conector na moto** | OBD-II preto de **16 pinos**, sob o banco do carona. **Sem adaptador.** |
 | **Software** | **TigerTool** (gratuito, Windows) |
 | **Software que NÃO serve** | TuneECU — não suporta USB nesta geração, e não tem mais versão Windows |
@@ -79,7 +80,39 @@ Nem todo clone presta. O que procurar:
 | **Microcontrolador PIC18F25K80** | Indica um clone de boa qualidade, com firmware mais completo. |
 | **Conexão USB** | Para TigerTool no PC. Bluetooth serve para o app TuneECU no Android. |
 
-### 1.2 Como saber se o seu adaptador presta
+### 1.2 O adaptador usado nos testes
+
+![Adaptador ELM327 USB com PIC18F25K80 e FTDI](imagens/elm327-pic18f25k80-ftdi.png)
+
+Modelo: **ELM327 v1.5 USB, "Modified", PIC18F25K80 + FTDI FT232RQ, com chave
+HS CAN / MS CAN**. Custa em torno de US$ 10 no AliExpress.
+
+- Link do exemplar testado: <https://aliexpress.com/item/1005006360821741.html>
+
+> *Imagem do anúncio do vendedor, usada aqui para identificação do modelo.*
+
+Não é indicação de loja — qualquer adaptador com essas características serve.
+O ponto é reconhecer o conjunto certo: **v1.5 + PIC18F25K80 + FTDI**.
+
+#### ⚠️ A chave HS CAN / MS CAN
+
+Esse modelo tem um **interruptor lateral**, junto ao cabo. Ele não é decoração:
+troca fisicamente quais pinos do conector OBD-II vão para o transceptor CAN.
+
+| Posição | Barramento | Pinos OBD-II | Onde se usa |
+|---|---|---|---|
+| **HS CAN** | High Speed, 500 kbps | 6 e 14 | **Padrão. É o que a Triumph usa.** |
+| **MS CAN** | Medium Speed, 125 kbps | 3 e 11 | Ford / Mazda, módulos de carroceria |
+
+**Deixe em `HS CAN`.** Na posição errada o adaptador liga normalmente, acende
+os LEDs e responde aos comandos `AT` — mas **nunca acha a moto**, porque está
+escutando pinos que na Triumph não têm nada. É uma das causas mais frustrantes
+de "não conecta", justamente porque tudo *parece* certo.
+
+O script `3-checar-na-moto.ps1` detecta esse caso: mostra tensão de ~12 V
+(o conector está bom) e, ao mesmo tempo, silêncio em todos os protocolos.
+
+### 1.3 Como saber se o seu adaptador presta
 
 Plugue o adaptador **só no USB** (sem a moto) e rode:
 
@@ -118,7 +151,7 @@ ela ainda não está conectada.
 
 </details>
 
-### 1.3 O conector da moto
+### 1.4 O conector da moto
 
 Na Tiger 800 (e na maioria das Triumph até ~2023) o conector de diagnóstico é o
 **OBD-II preto de 16 pinos**, igual ao de carro, sob o **banco do carona, lado
@@ -307,13 +340,14 @@ Exemplo de saída com tudo certo:
 ## 5. Procedimento na moto
 
 1. Remova o **banco do carona**. Localize o conector preto de 16 pinos à direita.
-2. Conecte o ELM327 na moto e o USB no notebook.
-3. **Kill switch em `RUN`.**
-4. **Ignição ligada, motor desligado.**
-5. Rode `.\3-checar-na-moto.ps1` e confirme tensão ~12 V e tráfego CAN.
-6. Abra o **TigerTool** → botão **`Select Port`** → escolha sua **COM**.
-7. Vá na aba **`Insts`** → ajuste o intervalo / limpe a chave inglesa.
-8. Desligue a ignição, desconecte o cabo, recoloque o banco.
+2. Se o seu adaptador tiver interruptor, confirme que está em **`HS CAN`**.
+3. Conecte o ELM327 na moto e o USB no notebook.
+4. **Kill switch em `RUN`.**
+5. **Ignição ligada, motor desligado.**
+6. Rode `.\3-checar-na-moto.ps1` e confirme tensão ~12 V e tráfego CAN.
+7. Abra o **TigerTool** → botão **`Select Port`** → escolha sua **COM**.
+8. Vá na aba **`Insts`** → ajuste o intervalo / limpe a chave inglesa.
+9. Desligue a ignição, desconecte o cabo, recoloque o banco.
 
 > **Bateria:** ignição ligada com motor parado consome. Se for demorar, use um
 > carregador de manutenção — ECU perdendo alimentação no meio de uma escrita é
@@ -344,6 +378,7 @@ Confirme no manual do seu ano/mercado — pode variar.
 | `ATRV` mostra 0.0 V na moto | Ignição desligada, kill switch fora de `RUN`, ou conector mal encaixado | Revise os três antes de qualquer outra coisa |
 | Script não acha a porta | Driver ausente ou porta errada | `Get-PnpDevice -Class Ports`; instale o driver do chip |
 | Conecta e cai no meio | Latency timer do FTDI em 16 ms | Rode `2-ajuste-ftdi.ps1` como admin e reconecte o USB |
+| **Nenhum tráfego CAN, mas 12 V OK** | **Chave do adaptador em `MS CAN`** | **Passe para `HS CAN`.** Primeiro suspeito em adaptadores com interruptor — veja [1.2](#-a-chave-hs-can--ms-can) |
 | Nenhum tráfego CAN, mas 12 V OK | Barramento dorme sem ignição | Confirme ignição ligada; teste com o painel aceso |
 | Adaptador não responde a `ATZ` | Clone ruim ou baud diferente | O script varre 4 velocidades; se nenhuma responder, troque o adaptador |
 | SmartScreen bloqueia o TigerTool | Executável não assinado | *Mais informações* → *Executar assim mesmo*, após conferir o hash |

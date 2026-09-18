@@ -107,9 +107,21 @@ if ($achou) {
   Write-Output "A moto esta conversando. Pode abrir o TigerTool e selecionar a $Port."
 } else {
   Write-Output "RESULTADO: nenhum trafego CAN detectado."
-  Write-Output "Verifique ignicao ligada, kill switch em RUN e encaixe do conector."
-  Write-Output "Se a tensao em [2] estiver ~12 V, o conector esta certo mas o barramento"
-  Write-Output "so acorda com a ignicao ligada - confirme antes de concluir que ha falha."
+  Write-Output ""
+  if ($num -ge 11.0) {
+    # Tensao boa + silencio total = o conector esta certo, o problema e outro.
+    Write-Output "  A tensao esta OK ($rv), entao o conector encaixou. Suspeitos, nesta ordem:"
+    Write-Output ""
+    Write-Output "  1. CHAVE HS CAN / MS CAN do adaptador na posicao errada."
+    Write-Output "     Se o seu adaptador tem um interruptor lateral, passe para HS CAN."
+    Write-Output "     Em MS CAN ele escuta os pinos 3/11, que na Triumph nao tem nada -"
+    Write-Output "     tudo parece funcionar, mas nunca acha a moto."
+    Write-Output "  2. Ignicao desligada ou kill switch fora de RUN (o barramento dorme)."
+    Write-Output "  3. Adaptador clone ruim, apesar de responder aos comandos AT."
+  } else {
+    Write-Output "  A tensao esta baixa ($rv), entao comece por ai:"
+    Write-Output "  ignicao ligada, kill switch em RUN e encaixe do conector."
+  }
 }
 Write-Output "=============================================="
 try { Read-Host "Enter para sair" } catch { }
