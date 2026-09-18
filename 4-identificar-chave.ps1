@@ -76,63 +76,73 @@ function Abrir-Porta {
 
 function Medir {
   param([string]$rotulo)
+  # As mensagens vao para o host, NAO para o fluxo de saida: esta funcao
+  # devolve apenas o numero de quadros. Usar Write-Output aqui faria as
+  # mensagens entrarem no valor de retorno, transformando o resultado num
+  # array e quebrando as comparacoes la embaixo.
   $sp = Abrir-Porta
-  $rv = (Send-Cmd $sp "ATRV" 1500).Trim()
-  $num = 0.0
-  [void][double]::TryParse(($rv -replace '[^0-9.]', ''), [ref]$num)
-  Write-Output "  Tensao: $rv"
-  if ($num -lt 11.0) {
-    Write-Warning "  Tensao baixa. Ligue a ignicao e confirme o encaixe antes de continuar."
+  try {
+    $rv = (Send-Cmd $sp "ATRV" 1500).Trim()
+    $num = 0.0
+    [void][double]::TryParse(($rv -replace '[^0-9.]', ''), [ref]$num)
+    Write-Host "  Tensao: $rv"
+    if ($num -lt 11.0) {
+      Write-Warning "  Tensao baixa. Ligue a ignicao e confirme o encaixe antes de continuar."
+    }
+    Write-Host "  Escutando o barramento..."
+    $r = Contar-Quadros $sp
+    Write-Host "  Posicao $rotulo -> $($r.Total) quadros"
+    foreach ($l in $r.Amostra) { Write-Host "     $($l.Trim())" }
+    return [int]$r.Total
   }
-  Write-Output "  Escutando o barramento..."
-  $r = Contar-Quadros $sp
-  $sp.Close()
-  Write-Output "  Posicao $rotulo -> $($r.Total) quadros"
-  foreach ($l in $r.Amostra) { Write-Output "     $($l.Trim())" }
-  return $r.Total
+  finally {
+    # Libera a porta entre as duas medicoes, mesmo se algo falhar.
+    if ($sp.IsOpen) { $sp.Close() }
+    $sp.Dispose()
+  }
 }
 
-Write-Output ""
-Write-Output "=============================================="
-Write-Output " Identificacao da chave HS CAN / MS CAN"
-Write-Output "=============================================="
-Write-Output ""
-Write-Output " Rode em um carro 2008+ (nao Ford/Mazda) ou na moto."
-Write-Output " Ignicao LIGADA, motor desligado."
-Write-Output ""
-Write-Output " Marque fisicamente a posicao atual da chave antes de comecar"
-Write-Output " (fita, caneta, foto) para nao se perder."
-Write-Output ""
+Write-Host ""
+Write-Host "=============================================="
+Write-Host " Identificacao da chave HS CAN / MS CAN"
+Write-Host "=============================================="
+Write-Host ""
+Write-Host " Rode em um carro 2008+ (nao Ford/Mazda) ou na moto."
+Write-Host " Ignicao LIGADA, motor desligado."
+Write-Host ""
+Write-Host " Marque fisicamente a posicao atual da chave antes de comecar"
+Write-Host " (fita, caneta, foto) para nao se perder."
+Write-Host ""
 try { Read-Host " Enter para medir a POSICAO 1" | Out-Null } catch { }
 
-Write-Output ""
-Write-Output "--- POSICAO 1 ---"
+Write-Host ""
+Write-Host "--- POSICAO 1 ---"
 try { $p1 = Medir "1" } catch { Write-Error $_; exit 1 }
 
-Write-Output ""
-Write-Output " Agora VIRE A CHAVE para a outra posicao."
+Write-Host ""
+Write-Host " Agora VIRE A CHAVE para a outra posicao."
 try { Read-Host " Enter quando tiver virado" | Out-Null } catch { }
 
-Write-Output ""
-Write-Output "--- POSICAO 2 ---"
+Write-Host ""
+Write-Host "--- POSICAO 2 ---"
 try { $p2 = Medir "2" } catch { Write-Error $_; exit 1 }
 
-Write-Output ""
-Write-Output "=============================================="
+Write-Host ""
+Write-Host "=============================================="
 if ($p1 -gt 0 -and $p2 -eq 0) {
-  Write-Output " A POSICAO 1 e a HS CAN. Deixe a chave nela."
+  Write-Host " A POSICAO 1 e a HS CAN. Deixe a chave nela."
 } elseif ($p2 -gt 0 -and $p1 -eq 0) {
-  Write-Output " A POSICAO 2 e a HS CAN. Deixe a chave nela."
+  Write-Host " A POSICAO 2 e a HS CAN. Deixe a chave nela."
 } elseif ($p1 -gt 0 -and $p2 -gt 0) {
-  Write-Output " As duas posicoes viram trafego."
-  Write-Output " O veiculo provavelmente tem MS CAN de verdade (Ford/Mazda)."
-  Write-Output " A HS CAN e a que capturou mais quadros: posicao $(if ($p1 -ge $p2) {'1'} else {'2'})."
-  Write-Output " Para um resultado limpo, repita em outro veiculo."
+  Write-Host " As duas posicoes viram trafego."
+  Write-Host " O veiculo provavelmente tem MS CAN de verdade (Ford/Mazda)."
+  Write-Host " A HS CAN e a que capturou mais quadros: posicao $(if ($p1 -ge $p2) {'1'} else {'2'})."
+  Write-Host " Para um resultado limpo, repita em outro veiculo."
 } else {
-  Write-Output " Nenhuma das posicoes viu trafego. O teste nao concluiu nada."
-  Write-Output " Verifique ignicao ligada e encaixe do conector, e tente de novo."
+  Write-Host " Nenhuma das posicoes viu trafego. O teste nao concluiu nada."
+  Write-Host " Verifique ignicao ligada e encaixe do conector, e tente de novo."
 }
-Write-Output ""
-Write-Output " Marque a posicao correta na carcaca para nao repetir isso."
-Write-Output "=============================================="
+Write-Host ""
+Write-Host " Marque a posicao correta na carcaca para nao repetir isso."
+Write-Host "=============================================="
 try { Read-Host "Enter para sair" } catch { }

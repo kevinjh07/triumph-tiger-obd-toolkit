@@ -49,6 +49,11 @@ $sp.DtrEnable = $true; $sp.RtsEnable = $true
 try { $sp.Open() } catch { Write-Error "Nao consegui abrir $Port : $($_.Exception.Message)"; exit 1 }
 Start-Sleep -Milliseconds 300
 
+# A partir daqui a porta esta aberta. O trap garante que ela seja liberada
+# mesmo se algo falhar no meio - senao a COM fica presa ate fechar o PowerShell
+# e a proxima execucao acusa "acesso negado".
+trap { if ($sp -and $sp.IsOpen) { $sp.Close() }; break }
+
 $v = Send-Cmd $sp "ATZ" 3000
 if ($v -notmatch 'ELM') { Write-Error "Adaptador nao respondeu (ATZ='$v')."; $sp.Close(); exit 1 }
 Write-Output "[1] Adaptador ......... OK  ($(($v -split "`n")[-1].Trim()))"

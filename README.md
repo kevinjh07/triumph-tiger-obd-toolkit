@@ -36,7 +36,7 @@ Se você só quer a resposta, é esta:
 
 | | |
 |---|---|
-| **Adaptador** | ELM327 v1.5 USB (chip FTDI ou CH340). ~R$ 50–120. |
+| **Adaptador** | ELM327 v1.5 USB (chip FTDI ou CH340) |
 | **Se tiver chave HS/MS CAN** | Deixe em **`HS CAN`** — senão não conecta |
 | **Conector na moto** | OBD-II preto de **16 pinos**, sob o banco do carona. **Sem adaptador.** |
 | **Software** | **TigerTool** (gratuito, Windows) |
@@ -85,7 +85,7 @@ Nem todo clone presta. O que procurar:
 ![Adaptador ELM327 USB com PIC18F25K80 e FTDI](imagens/elm327-pic18f25k80-ftdi.png)
 
 Modelo: **ELM327 v1.5 USB, "Modified", PIC18F25K80 + FTDI FT232RQ, com chave
-HS CAN / MS CAN**. Custa em torno de US$ 10 no AliExpress.
+HS CAN / MS CAN**.
 
 - Link do exemplar testado: <https://aliexpress.com/item/1005006360821741.html>
 
@@ -141,7 +141,10 @@ caneta. Você não vai querer repetir isso agachado no estacionamento.
 O conector OBD-II reserva pares de pinos diferentes para cada barramento:
 
 - **Pinos 6 e 14** — CAN High e CAN Low do barramento de alta velocidade
-  (500 kbps). É onde vive o diagnóstico, obrigatório desde o OBD-II.
+  (500 kbps). É onde vive o diagnóstico. O OBD-II original (1996) admitia
+  vários protocolos; o CAN nesses pinos passou a ser obrigatório nos
+  veículos a partir de 2008, e é por isso que qualquer carro dessa idade
+  serve de gabarito.
 - **Pinos 3 e 11** — barramento de média velocidade (125 kbps), opcional e
   usado principalmente pela Ford e pela Mazda para módulos de carroceria.
 
@@ -343,6 +346,39 @@ Depois **desconecte e reconecte o cabo USB** para aplicar.
 
 > Só se aplica a adaptadores FTDI. Com CH340/CP210x, pule.
 
+### 3.4 Liberando os scripts baixados
+
+Arquivos vindos da internet chegam com uma *marca de download*, e o PowerShell
+se recusa a executá-los:
+
+```
+... não pode ser carregado. A execução de scripts foi desabilitada neste sistema.
+```
+
+Isso não é defeito do repositório — é o Windows protegendo você de rodar script
+de origem desconhecida. Depois de baixar (seja o ZIP do GitHub ou via `git
+clone`), abra o PowerShell **na pasta do projeto** e rode:
+
+```powershell
+Get-ChildItem *.ps1 | Unblock-File
+```
+
+Se ainda assim reclamar, autorize só para a janela atual — o efeito termina
+quando você a fecha, e nada no sistema é alterado de forma permanente:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+> Leia os scripts antes de liberar. São quatro arquivos curtos e em texto puro,
+> exatamente para que você possa conferir o que fazem.
+
+### 3.5 Onde colocar o TigerTool
+
+Deixe o `TigerTool.exe` **na mesma pasta dos scripts**. Ele não precisa de
+instalação: é um executável único, sem dependências. Os exemplos de comando
+deste guia assumem esse layout.
+
 ---
 
 ## 4. Os scripts deste repositório
@@ -354,7 +390,14 @@ Depois **desconecte e reconecte o cabo USB** para aplicar.
 | `3-checar-na-moto.ps1` | Com a moto ligada, antes de abrir o TigerTool | **Não — somente leitura** |
 | `4-identificar-chave.ps1` | Uma vez, se o adaptador tiver chave HS/MS CAN | **Não — somente leitura** |
 
-Todos aceitam `-Port` e, quando faz sentido, `-Baud`:
+Parâmetros aceitos por cada um (o padrão de porta é sempre `COM5`):
+
+| Script | Parâmetros |
+|---|---|
+| `1-testar-adaptador.ps1` | `-Port`, `-Bauds` (lista de velocidades a testar) |
+| `2-ajuste-ftdi.ps1` | `-Reverter` — não recebe porta, age no driver |
+| `3-checar-na-moto.ps1` | `-Port`, `-Baud` |
+| `4-identificar-chave.ps1` | `-Port`, `-Baud`, `-Segundos` |
 
 ```powershell
 .\1-testar-adaptador.ps1  -Port COM7
@@ -376,7 +419,8 @@ a camada física:
 
 Nenhum byte de escrita é enviado à ECU.
 
-Exemplo de saída com tudo certo:
+Formato da saída quando tudo está certo *(valores ilustrativos — a tensão e os
+quadros variam de moto para moto)*:
 
 ```
 [1] Adaptador ......... OK  (ELM327 v1.5)
@@ -452,7 +496,7 @@ que você vai definir.
 
 | Campo | Para que serve |
 |---|---|
-| `Distance to service` | Intervalo até a próxima revisão. Os botões `<<` e `>>` aumentam e diminuem em passos. |
+| `Distance to service` | Intervalo até a próxima revisão. Ajusta-se pelos botões `<<` (diminui) e `>>` (aumenta), em passos. |
 | `Time to next service` | Prazo em dias (o padrão mostrado é `365`, ou seja, um ano). |
 | `Set service due at` | **Caixa de seleção.** Marcada, aplica o vencimento por distância. |
 | `Set service due on` | **Caixa de seleção.** Marcada, aplica o vencimento por data. |
@@ -461,16 +505,31 @@ que você vai definir.
 As duas caixas são independentes: você pode vencer a revisão por distância, por
 data, ou por ambos — o que ocorrer primeiro.
 
-> **Atenção às unidades.** A tela vem em **milhas**. O quadro
-> `Configure Instrument Menu`, logo abaixo, tem em **`UNITS`** um seletor
-> **`ODO`** para alternar a unidade, junto com `TPMS` e `Temp`. Confira isso
-> antes de digitar números, ou você vai definir 10.000 **milhas** achando que
-> são quilômetros — três vezes o intervalo correto.
+> **Atenção às unidades.** Na captura acima os campos aparecem em **milhas**.
+> Antes de ajustar qualquer número, **confira o `Current ODO` contra o
+> odômetro do painel**: se bater com o valor em km que você vê na moto, você
+> está trabalhando em km; se estiver por volta de 60% dele, está em milhas.
+> Confundir os dois faz você definir 10.000 milhas (16.000 km) achando que
+> são 10.000 km — mais de um intervalo e meio a mais do que deveria.
+
+#### O quadro `Configure Instrument Menu` — cuidado
+
+Logo abaixo há um segundo quadro, com `UNITS` (`ODO`, `TPMS`, `Temp`),
+`MENU` (`TPMS`, `ABS`) e um botão `Config`.
+
+**Ele não controla a exibição do TigerTool. Ele configura o painel da moto** —
+a unidade que o odômetro mostra, as unidades de pressão e temperatura, e quais
+itens aparecem no menu do instrumento.
+
+Não mexa nele para "trocar a unidade da tela" do programa. Isso grava
+configuração no painel e é assunto separado do reset de revisão. Para resetar a
+revisão você só precisa do quadro `Service Interval Data`.
 
 ### 5.5 Fazendo o reset
 
 1. Confirme que está conectado (barra inferior).
-2. Verifique a unidade em `UNITS` → `ODO`.
+2. Confira em que unidade você está, comparando `Current ODO` com o odômetro
+   do painel.
 3. Ajuste **`Distance to service`** com `<<` e `>>` até o intervalo desejado
    — para a Tiger 800, **10.000 km / 6.000 mi** (veja a
    [tabela de intervalos](#6-intervalos-de-revisão)).
@@ -519,8 +578,10 @@ Confirme no manual do seu ano/mercado — pode variar.
 | `ATRV` mostra 0.0 V na moto | Ignição desligada, kill switch fora de `RUN`, ou conector mal encaixado | Revise os três antes de qualquer outra coisa |
 | Script não acha a porta | Driver ausente ou porta errada | `Get-PnpDevice -Class Ports`; instale o driver do chip |
 | Conecta e cai no meio | Latency timer do FTDI em 16 ms | Rode `2-ajuste-ftdi.ps1` como admin e reconecte o USB |
-| **Nenhum tráfego CAN, mas 12 V OK** | **Chave do adaptador em `MS CAN`** | **Vire a chave.** Primeiro suspeito em adaptadores com interruptor. Não sabe qual é a posição certa? Rode `4-identificar-chave.ps1` |
-| Nenhum tráfego CAN, mas 12 V OK | Barramento dorme sem ignição | Confirme ignição ligada; teste com o painel aceso |
+| **Nenhum tráfego CAN, mas 12 V OK** | **Chave do adaptador em `MS CAN`** | **Vire a chave e repita.** Primeiro suspeito em adaptadores com interruptor |
+| Idem, e a chave já está certa (ou não existe) | Barramento dormindo | Confirme ignição ligada e painel aceso; o CAN só acorda com a moto energizada |
+| Scripts não executam: "execução de scripts foi desabilitada" | Política do PowerShell + marca de download | Veja [3.4](#34-liberando-os-scripts-baixados) |
+| "Acesso à porta COMx negado" | Outro programa está com a porta aberta | Feche o TigerTool e outras janelas do PowerShell. Os scripts liberam a porta sozinhos, inclusive em caso de erro |
 | Adaptador não responde a `ATZ` | Clone ruim ou baud diferente | O script varre 4 velocidades; se nenhuma responder, troque o adaptador |
 | SmartScreen bloqueia o TigerTool | Executável não assinado | *Mais informações* → *Executar assim mesmo*, após conferir o hash |
 | Site tiger800.co.uk bloqueado | Bloqueio do Cloudflare por região | Use o espelho da BMDiag (seção 2.3) |
