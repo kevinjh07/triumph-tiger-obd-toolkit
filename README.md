@@ -112,6 +112,50 @@ de "não conecta", justamente porque tudo *parece* certo.
 O script `3-checar-na-moto.ps1` detecta esse caso: mostra tensão de ~12 V
 (o conector está bom) e, ao mesmo tempo, silêncio em todos os protocolos.
 
+#### Como descobrir qual posição é a HS CAN
+
+**A carcaça normalmente não tem marcação nenhuma**, e a posição varia entre
+fabricantes — "chave virada para o lado do conector = HS" é folclore de fórum,
+não vale confiar.
+
+A forma confiável é medir. E o melhor é que **não precisa da moto**:
+
+```powershell
+.\4-identificar-chave.ps1
+```
+
+**Use um carro qualquer de 2008 em diante.** O padrão OBD-II obriga que o
+diagnóstico esteja em HS CAN, nos pinos 6 e 14 — então qualquer carro moderno
+serve de gabarito. O script mede uma posição, pede para você virar a chave,
+mede a outra e diz qual das duas escutou o barramento.
+
+> **Evite Ford e Mazda neste teste.** São as marcas que realmente usam MS CAN,
+> então as duas posições podem mostrar tráfego e o resultado fica ambíguo. O
+> script avisa quando isso acontece.
+
+Também funciona na própria moto — só é menos prático, porque exige tirar o
+banco e ficar com a ignição ligada por mais tempo.
+
+**Marque a posição correta** assim que descobrir: um ponto de esmalte, um
+pedaço de fita ou um risco de caneta permanente. É um teste que você não vai
+querer refazer no estacionamento.
+
+<details>
+<summary>Por que isso funciona</summary>
+
+O conector OBD-II reserva pares de pinos diferentes para cada barramento:
+
+- **Pinos 6 e 14** — CAN High e CAN Low do barramento de alta velocidade
+  (500 kbps). É onde vive o diagnóstico, obrigatório desde o OBD-II.
+- **Pinos 3 e 11** — barramento de média velocidade (125 kbps), opcional e
+  usado principalmente pela Ford e pela Mazda para módulos de carroceria.
+
+O interruptor apenas escolhe qual desses pares chega ao transceptor CAN do
+adaptador. Como a Triumph — e praticamente todo veículo fora de Ford/Mazda —
+só tem sinal em 6/14, a posição que enxerga tráfego é a HS CAN.
+
+</details>
+
 ### 1.3 Como saber se o seu adaptador presta
 
 Plugue o adaptador **só no USB** (sem a moto) e rode:
@@ -302,12 +346,14 @@ Depois **desconecte e reconecte o cabo USB** para aplicar.
 | `1-testar-adaptador.ps1` | Na bancada, antes de tudo | Não — nem conecta na moto |
 | `2-ajuste-ftdi.ps1` | Uma vez, como administrador | Não — mexe no registro do Windows |
 | `3-checar-na-moto.ps1` | Com a moto ligada, antes de abrir o TigerTool | **Não — somente leitura** |
+| `4-identificar-chave.ps1` | Uma vez, se o adaptador tiver chave HS/MS CAN | **Não — somente leitura** |
 
 Todos aceitam `-Port` e, quando faz sentido, `-Baud`:
 
 ```powershell
-.\1-testar-adaptador.ps1 -Port COM7
-.\3-checar-na-moto.ps1   -Port COM7 -Baud 38400
+.\1-testar-adaptador.ps1  -Port COM7
+.\3-checar-na-moto.ps1    -Port COM7 -Baud 38400
+.\4-identificar-chave.ps1 -Port COM7 -Segundos 5
 ```
 
 ### O que o `3-checar-na-moto.ps1` faz
@@ -340,7 +386,8 @@ Exemplo de saída com tudo certo:
 ## 5. Procedimento na moto
 
 1. Remova o **banco do carona**. Localize o conector preto de 16 pinos à direita.
-2. Se o seu adaptador tiver interruptor, confirme que está em **`HS CAN`**.
+2. Se o seu adaptador tiver interruptor, confirme que está em **`HS CAN`**
+   (não sabe qual é? rode `4-identificar-chave.ps1` antes, num carro).
 3. Conecte o ELM327 na moto e o USB no notebook.
 4. **Kill switch em `RUN`.**
 5. **Ignição ligada, motor desligado.**
@@ -378,7 +425,7 @@ Confirme no manual do seu ano/mercado — pode variar.
 | `ATRV` mostra 0.0 V na moto | Ignição desligada, kill switch fora de `RUN`, ou conector mal encaixado | Revise os três antes de qualquer outra coisa |
 | Script não acha a porta | Driver ausente ou porta errada | `Get-PnpDevice -Class Ports`; instale o driver do chip |
 | Conecta e cai no meio | Latency timer do FTDI em 16 ms | Rode `2-ajuste-ftdi.ps1` como admin e reconecte o USB |
-| **Nenhum tráfego CAN, mas 12 V OK** | **Chave do adaptador em `MS CAN`** | **Passe para `HS CAN`.** Primeiro suspeito em adaptadores com interruptor — veja [1.2](#-a-chave-hs-can--ms-can) |
+| **Nenhum tráfego CAN, mas 12 V OK** | **Chave do adaptador em `MS CAN`** | **Vire a chave.** Primeiro suspeito em adaptadores com interruptor. Não sabe qual é a posição certa? Rode `4-identificar-chave.ps1` |
 | Nenhum tráfego CAN, mas 12 V OK | Barramento dorme sem ignição | Confirme ignição ligada; teste com o painel aceso |
 | Adaptador não responde a `ATZ` | Clone ruim ou baud diferente | O script varre 4 velocidades; se nenhuma responder, troque o adaptador |
 | SmartScreen bloqueia o TigerTool | Executável não assinado | *Mais informações* → *Executar assim mesmo*, após conferir o hash |
