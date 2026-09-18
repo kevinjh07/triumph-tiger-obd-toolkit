@@ -1,0 +1,25 @@
+# --- Software e documentacao de terceiros ---
+# O TigerTool tem direitos do autor original (T800XC / Little Dog Systems).
+# Este repositorio NAO redistribui o binario nem o manual: o README explica
+# onde baixar e como verificar o hash.
+TigerTool.exe
+tigertool*.pdf
+TigerTool*.pdf
+download/
+*.zip
+
+# --- Capturas e anotacoes locais ---
+*.log
+capturas/
+scratch/
+
+# --- Windows ---
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# --- Editores ---
+.vscode/
+.idea/
+*.swp
+*~

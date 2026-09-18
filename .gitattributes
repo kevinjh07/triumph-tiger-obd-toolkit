@@ -1,0 +1,15 @@
+# Normaliza quebras de linha no repositorio
+* text=auto eol=lf
+
+# Scripts do Windows: mantem CRLF na copia local.
+# PowerShell lida melhor com CRLF, sobretudo em hosts mais antigos.
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binarios
+*.exe  binary
+*.zip  binary
+*.pdf  binary
+*.png  binary
+*.jpg  binary
