@@ -8,8 +8,9 @@ Este repositório reúne **scripts de verificação em PowerShell** e um **guia
 passo a passo** com as armadilhas que fazem a maioria das pessoas desistir no
 meio do caminho.
 
-> Validado em uma **Triumph Tiger 800 XRx 2016**, com ELM327 v1.5
-> (PIC18F25K80 + FTDI FT232R) no Windows 11.
+> Executado numa **Triumph Tiger 800 XRx 2016** com 62.988 km, usando um
+> ELM327 v1.5 (PIC18F25K80 + FTDI FT232R) no Windows 11. As capturas da
+> seção 5 são dessa sessão real, não montagens.
 
 ---
 
@@ -475,11 +476,17 @@ quase sempre é porta errada, latency timer ou a chave HS/MS CAN.
 
 ### 5.4 A aba `Insts`, campo por campo
 
-![Aba Insts do TigerTool](imagens/tigertool-insts.png)
+Esta é a aba com a moto **realmente conectada** — repare na barra inferior:
+`ECU Ready` e `COM5 open`.
 
-> *Captura feita **sem** a moto conectada. Os valores acima são apenas
-> espaços reservados; com a moto ligada eles são preenchidos com os dados
-> reais lidos da ECU.*
+![Aba Insts do TigerTool conectado a uma Tiger 800 XRx 2016](imagens/tigertool-insts-conectado.png)
+
+Ampliando o quadro que interessa:
+
+![Detalhe do quadro Service Interval Data](imagens/tigertool-insts-detalhe.png)
+
+> Capturas reais de uma **Tiger 800 XRx 2016 com 62.988 km**, momentos antes
+> do reset.
 
 O quadro **`Service Interval Data`** tem duas metades: o que a moto diz, e o
 que você vai definir.
@@ -488,29 +495,38 @@ que você vai definir.
 
 | Campo | O que é |
 |---|---|
-| `Current ODO` | Odômetro atual da moto |
+| `Current ODO` | Odômetro atual da moto. **Use-o para conferir a unidade** — se bater com o painel, está tudo certo |
 | `Last service` | Quilometragem e data da última revisão registrada |
 | `Service due` | Quilometragem e data em que a próxima revisão vence |
+
+> Na Tiger 800 XRx 2016 testada, `Last service` e `Service due` ficaram
+> **acinzentados em `000000 km / 01/01/24`**, antes e depois do reset. Esta moto
+> não reporta esses dois campos — não é sinal de erro nem de falha do reset.
 
 **Ajuste — o que você define**
 
 | Campo | Para que serve |
 |---|---|
 | `Distance to service` | Intervalo até a próxima revisão. Ajusta-se pelos botões `<<` (diminui) e `>>` (aumenta), em passos. |
-| `Time to next service` | Prazo em dias (o padrão mostrado é `365`, ou seja, um ano). |
-| `Set service due at` | **Caixa de seleção.** Marcada, aplica o vencimento por distância. |
+| `Time to next service` | Prazo em dias (padrão `365`). **Pode estar desabilitado** — veja abaixo. |
+| `Set service due at` | **Caixa de seleção.** Marcada, aplica o vencimento por distância. O valor é calculado sozinho: `Current ODO` + `Distance to service`. |
 | `Set service due on` | **Caixa de seleção.** Marcada, aplica o vencimento por data. |
 | `Reset` | Grava na ECU. É o botão que efetiva tudo. |
 
-As duas caixas são independentes: você pode vencer a revisão por distância, por
-data, ou por ambos — o que ocorrer primeiro.
+> **Nem toda moto aceita o critério por tempo.** Na Tiger 800 XRx 2016 testada,
+> `Time to next service` e `Set service due on` vieram **acinzentados** — essa
+> moto controla revisão só por distância. Se for o seu caso, não há o que fazer
+> ali: ajuste apenas `Distance to service`.
 
-> **Atenção às unidades.** Na captura acima os campos aparecem em **milhas**.
-> Antes de ajustar qualquer número, **confira o `Current ODO` contra o
-> odômetro do painel**: se bater com o valor em km que você vê na moto, você
-> está trabalhando em km; se estiver por volta de 60% dele, está em milhas.
-> Confundir os dois faz você definir 10.000 milhas (16.000 km) achando que
-> são 10.000 km — mais de um intervalo e meio a mais do que deveria.
+Quando os dois critérios estão disponíveis, eles são independentes: a revisão
+pode vencer por distância, por data, ou pelo que ocorrer primeiro.
+
+> **Atenção às unidades.** Na moto testada o programa leu em **km**, seguindo a
+> configuração do painel — mas o TigerTool também opera em milhas. Antes de
+> ajustar qualquer número, **confira o `Current ODO` contra o odômetro do
+> painel**: se bater, você está na mesma unidade; se estiver por volta de 60%
+> do valor do painel, está em milhas. Confundir os dois faz você definir
+> 10.000 milhas (16.000 km) achando que são 10.000 km.
 
 #### O quadro `Configure Instrument Menu` — cuidado
 
@@ -527,31 +543,43 @@ revisão você só precisa do quadro `Service Interval Data`.
 
 ### 5.5 Fazendo o reset
 
-1. Confirme que está conectado (barra inferior).
-2. Confira em que unidade você está, comparando `Current ODO` com o odômetro
-   do painel.
+1. Confirme que está conectado: a barra inferior mostra **`ECU Ready`** e
+   **`COM<n> open`**.
+2. Confira a unidade comparando `Current ODO` com o odômetro do painel.
 3. Ajuste **`Distance to service`** com `<<` e `>>` até o intervalo desejado
    — para a Tiger 800, **10.000 km / 6.000 mi** (veja a
    [tabela de intervalos](#6-intervalos-de-revisão)).
-4. Se quiser limite por tempo, ajuste **`Time to next service`**.
-5. Marque **`Set service due at`** e/ou **`Set service due on`**, conforme o
-   critério que você quer usar.
+4. Confira **`Set service due at`**: ele se atualiza sozinho para
+   `Current ODO + Distance to service`. Na moto testada, 62.988 + 10.000
+   resultou em **72.988 km**, com a caixa já marcada. Se a conta bater, não há
+   mais nada a preencher.
+5. Se a sua moto aceitar critério por tempo, ajuste `Time to next service` e
+   marque `Set service due on`.
 6. Clique em **`Reset`**.
-7. Aparece uma confirmação — a janela se chama **`CONFIRM RESET?`**. Leia e
-   confirme.
-8. A chave inglesa deve sumir do painel. Os campos de leitura passam a mostrar
-   os valores novos.
+7. Confirme na caixa **`CONFIRM RESET?`** que aparece em seguida.
+8. **Verifique no painel**, com a ignição ainda ligada, que a chave inglesa
+   sumiu. Essa é a única confirmação confiável.
 
-> A caixa de confirmação existe no programa (verificada no executável), mas o
-> texto exato dela não foi observado com a moto conectada. Leia com atenção
-> antes de confirmar.
+> **Os campos na tela podem não mudar depois do reset.** Na moto testada,
+> `Last service` e `Service due` continuaram acinzentados em `000000 km`
+> exatamente como antes. Isso **não** significa que o reset falhou — o
+> programa não relê esses campos, e essa moto não os reporta. Confie no
+> painel, não na tela do TigerTool.
 
 ### 5.6 Encerrando
 
-1. Feche o TigerTool.
-2. Desligue a ignição.
-3. Desconecte o adaptador e recoloque o banco.
-4. Ligue a moto e **confirme no painel** que a chave inglesa não voltou.
+A ordem importa: encerre o software antes de tirar o cabo, para não arrancar a
+conexão com a sessão de diagnóstico ativa.
+
+1. **Confira o painel** com a ignição ainda ligada — a chave inglesa sumiu?
+2. **Feche o TigerTool.** Isso encerra a sessão e libera a porta COM.
+3. **Desligue a ignição.**
+4. **Desconecte o adaptador** e recoloque o banco.
+5. **Ligue a moto** e confirme mais uma vez no painel.
+
+> Se a chave inglesa ainda estiver acesa no passo 1, não desconecte nada ainda.
+> Alguns painéis só atualizam depois de um ciclo de ignição: desligue, ligue de
+> novo e olhe outra vez antes de concluir que o reset não pegou.
 
 ---
 
@@ -590,7 +618,18 @@ Confirme no manual do seu ano/mercado — pode variar.
 
 ## Compatibilidade
 
-**Testado:** Triumph Tiger 800 XRx 2016 · ELM327 v1.5 FTDI · Windows 11.
+**Testado:** Triumph Tiger 800 XRx 2016 · ELM327 v1.5 (PIC18F25K80 + FTDI
+FT232R), USB · Windows 11 · TigerTool V3.7.
+
+O que se confirmou nessa moto:
+
+- conexão estabelecida (`ECU Ready`), lendo o odômetro real em **km**;
+- intervalo padrão de `Distance to service` já vem em **10.000 km**, que é o
+  valor correto do modelo;
+- `Set service due at` é calculado sozinho (`ODO + intervalo`);
+- controle por **tempo** (`Time to next service`) vem desabilitado — essa moto
+  só usa distância;
+- `Last service` e `Service due` não são reportados, ficam em `000000`.
 
 **Deve funcionar** (segundo a documentação do TigerTool): Tiger 800, Tiger 900,
 Tiger Sport, Tiger Explorer / 1200, Trophy, Speed Triple, Trident 660.
