@@ -62,6 +62,27 @@ te fazer perder tempo ou dinheiro**:
 
 Este guia existe para você não cair em nenhuma das três.
 
+### Dois motivos para fazer isso
+
+**Apagar a chave inglesa** depois de uma revisão é o caso óbvio. Mas há outro,
+igualmente válido:
+
+**Acertar o contador numa moto usada.** Se você comprou de outro dono e ninguém
+sabe quando foi a última revisão — nem se o painel chegou a ser resetado — o
+contador está mentindo. Fazendo a revisão e gravando a quilometragem atual como
+marco zero, você passa a ter controle real de quando vence a próxima.
+
+Os dois casos usam exatamente o mesmo procedimento. Muda só como se confere o
+resultado no fim, o que a [seção 5.5](#55-fazendo-o-reset) detalha.
+
+### Como o aviso funciona na Tiger 800
+
+Um detalhe do manual que evita confusão: **o símbolo de revisão só aparece
+quando faltam 800 km (500 mi) ou menos** para o vencimento.
+
+Isso significa que, na maior parte do tempo, **não ver nada no painel é o
+comportamento normal** — não prova que o contador esteja certo, nem errado.
+
 ---
 
 ## 1. Hardware
@@ -557,29 +578,45 @@ revisão você só precisa do quadro `Service Interval Data`.
    marque `Set service due on`.
 6. Clique em **`Reset`**.
 7. Confirme na caixa **`CONFIRM RESET?`** que aparece em seguida.
-8. **Verifique no painel**, com a ignição ainda ligada, que a chave inglesa
-   sumiu. Essa é a única confirmação confiável.
+8. Verifique o resultado — **e o jeito de verificar depende do seu caso**.
 
 > **Os campos na tela podem não mudar depois do reset.** Na moto testada,
 > `Last service` e `Service due` continuaram acinzentados em `000000 km`
-> exatamente como antes. Isso **não** significa que o reset falhou — o
-> programa não relê esses campos, e essa moto não os reporta. Confie no
-> painel, não na tela do TigerTool.
+> exatamente como antes. Isso **não** significa que o reset falhou: o programa
+> não relê esses campos, e essa moto não os reporta. Não use a tela do
+> TigerTool como prova.
+
+#### Como confirmar que deu certo
+
+**Se a chave inglesa estava acesa** — é simples: ela deve sumir do painel.
+Confira com a ignição ainda ligada. Se persistir, faça um ciclo de ignição
+(desligue e ligue) e olhe de novo antes de concluir que falhou.
+
+**Se não havia chave inglesa** — o caso de quem está acertando o contador numa
+moto usada — **não há nada para ver no painel**, porque o aviso só aparece nos
+últimos 800 km. Ausência de símbolo é o esperado, tanto antes quanto depois.
+Nesse caso, confirme de uma destas formas:
+
+- **Reconecte o TigerTool** numa próxima sessão e veja se `Service due` passou
+  a mostrar o valor que você gravou. Como o programa relê a ECU ao conectar,
+  uma sessão nova é mais confiável que a tela logo após a gravação.
+- **Deixe o tempo confirmar**: anote o valor de `Set service due at`. O símbolo
+  deve aparecer 800 km antes dele. No exemplo de 72.988 km, por volta dos
+  72.188 km.
 
 ### 5.6 Encerrando
 
 A ordem importa: encerre o software antes de tirar o cabo, para não arrancar a
 conexão com a sessão de diagnóstico ativa.
 
-1. **Confira o painel** com a ignição ainda ligada — a chave inglesa sumiu?
+1. **Se a chave inglesa estava acesa**, confira o painel agora, com a ignição
+   ainda ligada. Se ainda estiver lá, não desconecte nada: faça um ciclo de
+   ignição e olhe outra vez.
 2. **Feche o TigerTool.** Isso encerra a sessão e libera a porta COM.
 3. **Desligue a ignição.**
 4. **Desconecte o adaptador** e recoloque o banco.
-5. **Ligue a moto** e confirme mais uma vez no painel.
-
-> Se a chave inglesa ainda estiver acesa no passo 1, não desconecte nada ainda.
-> Alguns painéis só atualizam depois de um ciclo de ignição: desligue, ligue de
-> novo e olhe outra vez antes de concluir que o reset não pegou.
+5. **Anote a quilometragem do próximo vencimento.** Você acabou de gravá-la, e
+   o painel só vai avisar nos últimos 800 km.
 
 ---
 
@@ -629,7 +666,9 @@ O que se confirmou nessa moto:
 - `Set service due at` é calculado sozinho (`ODO + intervalo`);
 - controle por **tempo** (`Time to next service`) vem desabilitado — essa moto
   só usa distância;
-- `Last service` e `Service due` não são reportados, ficam em `000000`.
+- `Last service` e `Service due` não são reportados, ficam em `000000`;
+- o aviso no painel só acende nos últimos **800 km**, então não ver nada é o
+  estado normal na maior parte do tempo.
 
 **Deve funcionar** (segundo a documentação do TigerTool): Tiger 800, Tiger 900,
 Tiger Sport, Tiger Explorer / 1200, Trophy, Speed Triple, Trident 660.
